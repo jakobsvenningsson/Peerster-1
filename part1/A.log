@@ -1,0 +1,19 @@
+MONGERING with 127.0.0.1:10002
+DSDV B: 127.0.0.1:10002
+127.0.0.1:10002
+DSDV C: 127.0.0.1:10004
+MONGERING with 127.0.0.1:10002
+STATUS from 127.0.0.1:10004 origin C nextID 2
+STATUS2 from 127.0.0.1:10002 origin B nextID 2 origin A nextID 2
+DSDV D: 127.0.0.1:10002
+STATUS from 127.0.0.1:10004 origin C nextID 2 origin A nextID 2
+STATUS from 127.0.0.1:10004 origin B nextID 2 origin C nextID 2 origin A nextID 2
+IN SYNC WITH 127.0.0.1:10004 &{[{B 2} {C 2} {A 2}]}
+127.0.0.1:10002,127.0.0.1:10004
+MONGERING with 127.0.0.1:10004
+STATUS2 from 127.0.0.1:10002 origin B nextID 2 origin A nextID 2 origin D nextID 2
+127.0.0.1:10002,127.0.0.1:10004
+DSDV E: 127.0.0.1:10002
+MONGERING with 127.0.0.1:10004
+STATUS2 from 127.0.0.1:10004 origin A nextID 2 origin B nextID 2 origin D nextID 2 origin C nextID 2
+127.0.0.1:10002,127.0.0.1:10004

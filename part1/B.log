@@ -1,0 +1,38 @@
+MONGERING with 127.0.0.1:10000
+DSDV A: 127.0.0.1:10000
+127.0.0.1:10000
+STATUS2 from 127.0.0.1:10000 origin A nextID 2 origin B nextID 2
+IN SYNC WITH 127.0.0.1:10000 &{[{A 2} {B 2}]}
+DSDV D: 127.0.0.1:10006
+MONGERING with 127.0.0.1:10000
+DSDV C: 127.0.0.1:10000
+DSDV E: 127.0.0.1:10008
+STATUS from 127.0.0.1:10006 origin D nextID 2
+STATUS from 127.0.0.1:10006 origin D nextID 2 origin A nextID 2
+STATUS from 127.0.0.1:10006 origin D nextID 2 origin A nextID 2 origin B nextID 2
+IN SYNC WITH 127.0.0.1:10006 &{[{D 2} {A 2} {B 2}]}
+STATUS2 from 127.0.0.1:10000 origin A nextID 2 origin B nextID 2 origin C nextID 2 origin D nextID 2
+127.0.0.1:10000,127.0.0.1:10006,127.0.0.1:10008
+MONGERING with 127.0.0.1:10006
+STATUS2 from 127.0.0.1:10006 origin A nextID 2 origin B nextID 2 origin C nextID 2 origin D nextID 2
+IN SYNC WITH 127.0.0.1:10006 &{[{A 2} {B 2} {C 2} {D 2}]}
+127.0.0.1:10000,127.0.0.1:10006,127.0.0.1:10008
+MONGERING with 127.0.0.1:10000
+FLIPPED COIN sending rumor to 127.0.0.1:10000
+MONGERING with 127.0.0.1:10000
+STATUS from 127.0.0.1:10008 origin E nextID 2
+STATUS2 from 127.0.0.1:10000 origin B nextID 2 origin C nextID 2 origin D nextID 2 origin E nextID 2 origin A nextID 2
+IN SYNC WITH 127.0.0.1:10000 &{[{B 2} {C 2} {D 2} {E 2} {A 2}]}
+127.0.0.1:10000,127.0.0.1:10006,127.0.0.1:10008
+STATUS from 127.0.0.1:10008 origin E nextID 2 origin B nextID 2
+STATUS from 127.0.0.1:10008 origin D nextID 2 origin E nextID 2 origin B nextID 2
+STATUS from 127.0.0.1:10008 origin D nextID 2 origin A nextID 2 origin E nextID 2 origin B nextID 2
+STATUS from 127.0.0.1:10008 origin E nextID 2 origin B nextID 2 origin D nextID 2 origin A nextID 2 origin C nextID 2
+IN SYNC WITH 127.0.0.1:10008 &{[{E 2} {B 2} {D 2} {A 2} {C 2}]}
+FLIPPED COIN sending rumor to 127.0.0.1:10008
+MONGERING with 127.0.0.1:10008
+FLIPPED COIN sending rumor to 127.0.0.1:10000
+MONGERING with 127.0.0.1:10000
+FLIPPED COIN sending rumor to 127.0.0.1:10000
+MONGERING with 127.0.0.1:10000
+PRIVATE: E:9:Weather_is_clear
