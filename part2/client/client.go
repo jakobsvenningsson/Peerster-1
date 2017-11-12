@@ -12,7 +12,7 @@ import (
 const localAddress string = "127.0.0.1"
 
 func main(){
-	uiPort := flag.Int("UIPort",10000,"user interface port(for clients)")
+	uiPort := flag.Int("UIPort",10001,"user interface port(for clients)")
 	dest := flag.String("Dest", "", "Destination")
 	msg := flag.String("msg", "Hello", "Message to be sent")
 	flag.Parse()

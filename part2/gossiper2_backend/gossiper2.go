@@ -24,7 +24,7 @@ type Gossiper struct {
 	msgChn2		 chan messaging.MsgReceiver	// channel to send messages from peers to other peers
 	msgChn3		 chan messaging.MsgReceiver   // channel for status messages
 	msgChnACK	 chan messaging.MsgReceiver // channel for ACK
-	msgChnRumor  chan messaging.RumorMessage   // channel for chat rumors and route rumors
+	msgChnRumor  chan routing.PrioritySequence   // channel for chat rumors and route rumors
 	msgChnPriv	 chan messaging.PrivateMessage
 	setpeers	 []string//map[int]string // known peers
 	msgID		 uint32						// sequence of messages originated from this node
@@ -68,7 +68,7 @@ func NewGossiper(address, name string, peers string, rtimer, guiPort int, noforw
 		msgChn2:	  make(chan messaging.MsgReceiver),
 		msgChn3:	  make(chan messaging.MsgReceiver),
 		msgChnACK:	  make(chan messaging.MsgReceiver),
-		msgChnRumor:  make(chan messaging.RumorMessage),
+		msgChnRumor:  make(chan routing.PrioritySequence),
 		msgChnPriv:   make(chan messaging.PrivateMessage),
 		setpeers:	  peersList,
 		vectorClock:  make(map[string]string),
@@ -100,7 +100,7 @@ func (g *Gossiper) listenToPeers(){
 	for {
 		packetBytes := make([]byte, 2048)
 		n, udpAddr, err := g.conn.ReadFromUDP(packetBytes)
-		go g.handleRequests(packetBytes, n, udpAddr.String(), true)
+		go g.handleRequests(packetBytes, n, udpAddr.String(), true, udpAddr)
 		if err != nil {
 			log.Println("error during read: %s", err)
 		}
@@ -117,7 +117,7 @@ func (g *Gossiper) ServeClients(clientsPort int){
 	for {
 		packetBytes := make([]byte, 2048)
 		n, udpAddr, err := listener.ReadFromUDP(packetBytes)
-		go g.handleRequests(packetBytes, n, udpAddr.String(),false)
+		go g.handleRequests(packetBytes, n, udpAddr.String(),false, udpAddr)
 		if err != nil {
 			log.Println("error during read: %s", err)
 		}
@@ -125,7 +125,7 @@ func (g *Gossiper) ServeClients(clientsPort int){
 	}
 }
 
-func (gossiper *Gossiper)handleRequests(recv []byte, n int, udpAddr string, flag bool){
+func (gossiper *Gossiper)handleRequests(recv []byte, n int, udpAddr string, flag bool, addr *net.UDPAddr){
 	t2 := messaging.GossipPacket{}
 	err := protobuf.Decode(recv[:n], &t2)
 	if err != nil {
@@ -142,7 +142,14 @@ func (gossiper *Gossiper)handleRequests(recv []byte, n int, udpAddr string, flag
 			gossiper.msgChn3 <- msgRecv
 		}else if t2.Rumor != nil{
 			if strings.Compare(t2.Rumor.Text,"") == 0 && strings.Compare(t2.Rumor.Origin, gossiper.origin) != 0{
-				gossiper.msgChnRumor <- *msgRecv.Msg.Rumor
+				flag := false
+				if  *msgRecv.Msg.Rumor.LastPort == 0{
+					flag = true
+					msgRecv.Msg.Rumor.LastIP = &(addr.IP)
+					msgRecv.Msg.Rumor.LastPort = &(addr.Port)
+				}
+				priority := routing.PrioritySequence{*msgRecv.Msg.Rumor, flag}
+				gossiper.msgChnRumor <- priority
 			}
 			gossiper.msgChn2 <- msgRecv          // channel for Rumors
 		}else if t2.Private != nil{
@@ -179,8 +186,14 @@ func (gossiper *Gossiper)forwardMessage(msg messaging.GossipPacket, relayPeer st
 	gossiper.mu2.Lock()
 	gossiper.waitForACK[randomPeer] = true
 	gossiper.mu2.Unlock()
-	fmt.Println("MONGERING with", randomPeer)
-	go gossiper.sendMessages(msg, randomPeer)
+	if msg.Rumor != nil{
+		if strings.Compare(msg.Rumor.Text,"")==0{
+			fmt.Println("MONGERING ROUTE to",randomPeer)
+		}
+	}else{
+		fmt.Println("MONGERING with", randomPeer)
+	}
+	gossiper.sendMessages(msg, randomPeer)
 	for{
 		select{
 			case vc := <-gossiper.msgChnACK:
@@ -197,7 +210,7 @@ func (gossiper *Gossiper)forwardMessage(msg messaging.GossipPacket, relayPeer st
 				gossiper.mu2.Lock()
 		    	gossiper.waitForACK[randomPeer] = false
 		    	gossiper.mu2.Unlock()
-		//		fmt.Println("Timeout!!!!!!!!!!!!!!!", randomPeer)
+				//fmt.Println("Timeout!!!!!!!!!!!!!!!", randomPeer)
 				go gossiper.flipcoin(msg, relayPeer)
 				return
 		    }
@@ -211,7 +224,8 @@ func (gossiper *Gossiper)waitForClientsToSend(){                         // inpu
 			msg.Rumor.Origin = gossiper.origin
 			msg.Rumor.ID = gossiper.msgID
 			msg.Rumor.LastIP = gossiper.ip
-			msg.Rumor.LastPort = gossiper.port
+			k := 0
+			msg.Rumor.LastPort = &k
 			fmt.Println("CLIENT",msg.Rumor.Text,msg.Rumor.Origin)
 			gossiper.storeVectorClocks(msg)
 			if !gossiper.noForward || strings.Compare(msg.Rumor.Text,"") == 0 {
@@ -227,7 +241,8 @@ func (gossiper *Gossiper)waitForPeersToSend(){                        // input f
 		for msg := range gossiper.msgChn2{
 			if gossiper.checkMessageType(msg.Msg) {               // RumorMessage
 				if strings.Compare(msg.Msg.Rumor.Origin, gossiper.origin) != 0{
-					gossiper.msgChnRumor <- *msg.Msg.Rumor
+					priority := routing.PrioritySequence{*msg.Msg.Rumor, false}
+					gossiper.msgChnRumor <- priority
 				}
 				if gossiper.ifMessageExists(msg.Msg.Rumor.Origin,msg.Msg.Rumor.ID) {
 					continue
@@ -237,11 +252,14 @@ func (gossiper *Gossiper)waitForPeersToSend(){                        // input f
 				}
 				gossiper.storeVectorClocks(msg.Msg)
 				if !gossiper.noForward || strings.Compare(msg.Msg.Rumor.Text,"") == 0 {
-					toSend := messaging.GossipPacket{nil,&messaging.StatusPacket{gossiper.createStatusPacket()},nil}  			// ACK
+					toSend := messaging.GossipPacket{nil, &messaging.StatusPacket{gossiper.createStatusPacket()}, nil} // ACK
 					gossiper.sendMessages(toSend, msg.UpdAddr)
-					msg.Msg.Rumor.LastIP = gossiper.ip
-					msg.Msg.Rumor.LastPort = gossiper.port
-					gossiper.forwardMessage(msg.Msg, msg.UpdAddr, " ")					// forward Rumor to other Peer
+					gossiper.appendPeersList(msg.Msg.Rumor.LastIP.String()+":"+strconv.Itoa(*msg.Msg.Rumor.LastPort))
+					if *msg.Msg.Rumor.LastPort != 0{
+						gossiper.forwardMessage(msg.Msg, msg.UpdAddr, " ")					// forward Rumor to other Peer
+					}
+				}else{
+					fmt.Println("Not forwarding private message")
 				}
 			}
 			gossiper.printKnownPeers()
@@ -253,9 +271,9 @@ func (gossiper *Gossiper)waitForPeersToSendStatus(){                        // i
 	go func() {
 		for msg := range gossiper.msgChn3{
 			gossiper.mu2.RLock()
-			_, found := gossiper.waitForACK[msg.UpdAddr]
+			resp , _ := gossiper.waitForACK[msg.UpdAddr]
 			gossiper.mu2.RUnlock()
-			if found{
+			if resp{
 				gossiper.msgChnACK <- msg
 				continue
 			}
@@ -292,19 +310,19 @@ func(gossiper *Gossiper)acceptPointToPointMessage(){
 			if strings.Compare(msg.Origin,"") == 0{
 				msg.Origin = gossiper.origin
 			}
-			if !gossiper.noForward || strings.Compare(msg.Text,"") == 0 {
 				if strings.Compare(msg.Dest, gossiper.origin) == 0 {
 					fmt.Print("PRIVATE: ", msg.Origin, ":", msg.HopLimit, ":", msg.Text, "\n")
 					gossiper.mupriv.Lock()
 					gossiper.privateList[time.Now()] = msg
 					gossiper.mupriv.Unlock()
 				} else {
-					msg.HopLimit--
-					if msg.HopLimit == 0 {
-						return
-					} else {
-						go gossiper.sendPrivateMessages(msg)
-					}
+					if !gossiper.noForward || strings.Compare(msg.Text,"") == 0 {
+						msg.HopLimit--
+						if msg.HopLimit == 0 {
+							return
+						} else {
+							go gossiper.sendPrivateMessages(msg)
+						}
 				}
 			}
 		}
@@ -326,7 +344,7 @@ func (gossiper *Gossiper)announceMyself(){
 	gossiper.storeVectorClocks(messaging.GossipPacket{&rumor,nil,nil})
 	gossiper.sendRumors(rumor, gossiper.setpeers)
 	for {
-		ticker := time.NewTicker(10*time.Second)
+		ticker := time.NewTicker(60*time.Second)
 		<-ticker.C
 		gossiper.msgID++
 		rumor := messaging.RumorMessage{gossiper.origin, gossiper.msgID, "",gossiper.ip,gossiper.port}
@@ -379,8 +397,9 @@ func(gossiper *Gossiper)flipcoin(msg messaging.GossipPacket, relayPeer string){
 			}
 		}
 		fmt.Println("FLIPPED COIN sending rumor to",randomPeer)
-
-		gossiper.forwardMessage(msg, relayPeer, randomPeer)
+		if !gossiper.noForward {
+			gossiper.forwardMessage(msg, relayPeer, randomPeer)
+		}
 	}else{
 		return
 	}
@@ -435,8 +454,11 @@ func (gossiper *Gossiper)compareVectorClocks(vc messaging.MsgReceiver) bool{
 		if gossiper.ifMessageExists(vc.Msg.Status.Want[index].Identifier, vc.Msg.Status.Want[index].NextID){
 			flag = false
 			temp, _ := gossiper.accessVectorClock(str)//gossiper.vectorClock[str]
-			newPacket := messaging.GossipPacket{&messaging.RumorMessage{vc.Msg.Status.Want[index].Identifier,vc.Msg.Status.Want[index].NextID,temp, gossiper.ip, gossiper.port}, nil, nil}
-			gossiper.sendMessages(newPacket, vc.UpdAddr)
+			if !gossiper.noForward {
+				k := 0
+				newPacket := messaging.GossipPacket{&messaging.RumorMessage{vc.Msg.Status.Want[index].Identifier, vc.Msg.Status.Want[index].NextID, temp, &net.IP{},&k}, nil, nil}
+				gossiper.sendMessages(newPacket, vc.UpdAddr)
+			}
 		}else{
 			if once{
 				str1 := vc.Msg.Status.Want[index].Identifier+ ","+fmt.Sprint(vc.Msg.Status.Want[index].NextID-1)
@@ -455,8 +477,11 @@ func (gossiper *Gossiper)compareVectorClocks(vc messaging.MsgReceiver) bool{
 		if gossiper.ifMessageExists(vc.Msg.Status.Want[index].Identifier, vc.Msg.Status.Want[index].NextID+1){
 			flag = false
 			temp, _ := gossiper.accessVectorClock(str)//gossiper.vectorClock[str]
-			newPacket := messaging.GossipPacket{&messaging.RumorMessage{vc.Msg.Status.Want[index].Identifier,vc.Msg.Status.Want[index].NextID,temp, gossiper.ip,gossiper.port}, nil, nil}
-			gossiper.sendMessages(newPacket, vc.UpdAddr)
+			if !gossiper.noForward {
+				k := 0
+				newPacket := messaging.GossipPacket{&messaging.RumorMessage{vc.Msg.Status.Want[index].Identifier, vc.Msg.Status.Want[index].NextID, temp, &net.IP{}, &k}, nil, nil}
+				gossiper.sendMessages(newPacket, vc.UpdAddr)
+			}
 		}
 	}
 	gossiper.mu.RLock()
@@ -466,8 +491,11 @@ func (gossiper *Gossiper)compareVectorClocks(vc messaging.MsgReceiver) bool{
 		if !ok{
 			flag = false
 			temp,_ := strconv.Atoi(strings.Split(key,",")[1])
-			newPacket := messaging.GossipPacket{&messaging.RumorMessage{orig,uint32(temp),value, gossiper.ip, gossiper.port}, nil, nil}
-			gossiper.sendMessages(newPacket, vc.UpdAddr)
+			if !gossiper.noForward {
+				k := 0
+				newPacket := messaging.GossipPacket{&messaging.RumorMessage{orig, uint32(temp), value, &net.IP{},&k}, nil, nil}
+				gossiper.sendMessages(newPacket, vc.UpdAddr)
+			}
 		}
 	}
 	gossiper.mu.RUnlock()
@@ -490,17 +518,20 @@ func (gossiper Gossiper)storeVectorClocks(vc messaging.GossipPacket){
 		gossiper.mu.Unlock()
 }
 
-func (gossiper *Gossiper)appendPeersList(peerToAdd string){
+func (gossiper *Gossiper)appendPeersList(peerToAdd string) {
 	ok := false
-	for _, value := range gossiper.setpeers {
-		if strings.Compare(value, peerToAdd) == 0 {
-			ok = true
-			break
+	test,_ := strconv.Atoi(strings.Split(peerToAdd, ":")[1])
+	if test != 0 {
+		for _, value := range gossiper.setpeers {
+			if strings.Compare(value, peerToAdd) == 0 {
+				ok = true
+				break
+			}
 		}
-	}
-	if !ok {
-		gossiper.setpeers = append(gossiper.setpeers, peerToAdd)
-	}
+		if !ok {
+			gossiper.setpeers = append(gossiper.setpeers, peerToAdd)
+		}
+    }
 }
 
 func (g *Gossiper)sendMessages(msg messaging.GossipPacket, peer string){

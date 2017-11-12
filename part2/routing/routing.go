@@ -2,7 +2,6 @@ package routing
 
 import (
 	"strings"
-	"fmt"
 	"github.com/sagap/Peerster/part2/routingtable"
 	"github.com/sagap/Peerster/part2/messaging"
 	"strconv"
@@ -12,9 +11,15 @@ import (
 type Router struct{
 	routingtable 			routingtable.RoutingTable
 	lastSequencePerOrigin 	map[string]uint32
+	direct					map[string]bool
 }
 
-func NewRouter(rumor <-chan messaging.RumorMessage, rtimer int) (*Router){
+type PrioritySequence struct {
+	Message messaging.RumorMessage
+	Direct  bool                        // if it is a direct route
+}
+
+func NewRouter(rumor <-chan PrioritySequence, rtimer int) (*Router){
 	rr :=  &Router{
 		routingtable: 			*routingtable.NewRoutingTable(),
 		lastSequencePerOrigin:  make(map[string]uint32),
@@ -23,12 +28,16 @@ func NewRouter(rumor <-chan messaging.RumorMessage, rtimer int) (*Router){
 	return rr
 }
 
-func (router *Router) waitForRumorMessage(rumor <-chan messaging.RumorMessage, rtimer int){
-
+func (router *Router) waitForRumorMessage(rumor <-chan PrioritySequence, rtimer int){
 	for data := range rumor{
-		if router.checkSeqNumber(data.Origin, data.ID){
-			router.routingtable.Add(data.Origin, data.LastIP.String()+":"+strconv.Itoa(*data.LastPort))
+		if router.checkSeqNumber(data.Message.Origin, data.Message.ID){
+			if *data.Message.LastPort !=0{
+				router.routingtable.Add(data.Message.Origin, data.Message.LastIP.String()+":"+strconv.Itoa(*data.Message.LastPort))
+			}
+		}else if data.Direct && data.Message.ID == router.lastSequencePerOrigin[data.Message.Origin]{
+			router.routingtable.Add(data.Message.Origin, data.Message.LastIP.String()+":"+strconv.Itoa(*data.Message.LastPort))
 		}
+
 		//ticker := time.NewTicker(time.Duration(rtimer)*time.Second)
 		//<-ticker.C
 	}
@@ -58,10 +67,6 @@ func (router *Router)CheckIfRouteRumor(msg messaging.RumorMessage) bool{
 			return true
 		}
 	return false
-}
-
-func (router *Router)Print(){
-	fmt.Println("WPA1:",router.routingtable,"\t","WPA2:",router.lastSequencePerOrigin,"\n")
 }
 
 func (router *Router)PrintOriginIdentifiers() []string{
