@@ -80,6 +80,9 @@ In this case with the same commands as above I added some code according to the 
 
 -For Exercise 6:
 
+I added a struct Priority in the router, such that in case there is a direct route to node with a sequence number that already exists and represents an indirect route, it takes "priority".
+
+I tested everything according to your scripts, even though I did not manage to run the 2nd part on docker.
 
 
 
