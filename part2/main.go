@@ -2,8 +2,7 @@ package main
 
 import (
 "flag"
-"strings"
-"github.com/sagap/Decentralized-Systems-Project-2/part2/gossiper2_backend"
+"github.com/sagap/Peerster/part2/gossiper2_backend"
 )
 
 func main(){
@@ -16,7 +15,7 @@ func main(){
 	noForward := flag.Bool("noforward",false,"Not forward messages, except route rumors")
 	flag.Parse()
 
-	gossiper := gossiper2_backend.NewGossiper(*gossipPort, *nodeName, strings.Split(*peers,"_"), *rtimer, *guiPort, *noForward)
+	gossiper := gossiper2_backend.NewGossiper(*gossipPort, *nodeName, *peers, *rtimer, *guiPort, *noForward)
 	gossiper.ServeClients(*uiPort)
 }
 

@@ -1,11 +1,7 @@
 MONGERING with 127.0.0.1:10000
-STATUS2 from 127.0.0.1:10000 origin A nextID 2 origin B nextID 2 origin C nextID 2
+STATUS from 127.0.0.1:10000 origin A nextID 2 origin B nextID 2 origin C nextID 2
+DSDV B: 127.0.0.1:10000
 DSDV A: 127.0.0.1:10000
 127.0.0.1:10000
-DSDV B: 127.0.0.1:10000
-127.0.0.1:10000
-DSDV D: 127.0.0.1:10000
-127.0.0.1:10000
-DSDV E: 127.0.0.1:10000
 127.0.0.1:10000
 PRIVATE: E:7:Weather_is_clear

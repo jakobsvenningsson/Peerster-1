@@ -10,8 +10,8 @@ import (
 	"math/rand"
 	"time"
 	"sync"
-	"github.com/sagap/Decentralized-Systems-Project-2/part1/messaging"
-	"github.com/sagap/Decentralized-Systems-Project-2/part1/routing"
+	"github.com/sagap/Peerster/part1/messaging"
+	"github.com/sagap/Peerster/part1/routing"
 )
 
 const localAddress = "127.0.0.1"
@@ -312,29 +312,6 @@ func(gossiper *Gossiper)sendPrivateMessages(msg messaging.PrivateMessage) {
 	gossiper.sendMessages(messageToSend, sendTo)
 }
 
-/*func(gossiper *Gossiper)FindRandomPeer(relayPeerOrigin string) string{
-	r := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
-	var temp int32
-	temp = int32(len(gossiper.peerNames))
-	num := r.Int31n(10)%temp
-	randomPeer := gossiper.peerNames[num]
-	if strings.Compare(randomPeer, relayPeerOrigin) == 0{
-		if len(gossiper.peerNames) == 1{
-			return ""
-		}else{
-			for{
-				r = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
-				num = r.Int31n(10)%temp
-				randomPeer = gossiper.peerNames[num]
-				if strings.Compare(randomPeer, relayPeerOrigin) != 0{
-					return randomPeer
-				}
-			}
-		}
-	}
-	return randomPeer
-}*/
-
 func (gossiper *Gossiper)announceMyself(){
 	gossiper.msgID++
 	rumor := messaging.RumorMessage{gossiper.origin, gossiper.msgID, "",gossiper.ip,gossiper.port}
@@ -402,7 +379,7 @@ func(gossiper *Gossiper)flipcoin(msg messaging.GossipPacket, relayPeer string){
 
 func (gossiper *Gossiper)AntiEntropy(){
 		for{
-			ticker := time.NewTicker(10*time.Second)
+			ticker := time.NewTicker(1*time.Second)
 			<-ticker.C
 			if len(gossiper.vectorClock) >0 {
 				gossiper.sendAntiEntropyMessage()
@@ -458,7 +435,7 @@ func (gossiper *Gossiper)compareVectorClocks(vc messaging.MsgReceiver) bool{
 				if !ok {
 					once = false
 					flag = false
-					newPacket := messaging.GossipPacket{nil, &messaging.StatusPacket{gossiper.createStatusPacket()}, nil}//messaging.PeerStatus{vc.Msg.Status.Want.Identifier,gossiper.lastRecordToReturn(vc.Msg.Status.Want.Identifier)}}}
+					newPacket := messaging.GossipPacket{nil, &messaging.StatusPacket{gossiper.createStatusPacket()}, nil}
 					gossiper.sendMessages(newPacket, vc.UpdAddr)
 				}
 			}

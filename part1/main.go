@@ -2,7 +2,7 @@ package main
 
 import (
 "flag"
-"github.com/sagap/Decentralized-Systems-Project-2/part1/gossiper2_backend"
+"github.com/sagap/Peerster/part1/gossiper2_backend"
 )
 
 func main(){

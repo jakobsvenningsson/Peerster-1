@@ -3,8 +3,8 @@ package routing
 import (
 	"strings"
 	"fmt"
-	"github.com/sagap/Decentralized-Systems-Project-2/part2/routingtable"
-	"github.com/sagap/Decentralized-Systems-Project-2/part2/messaging"
+	"github.com/sagap/Peerster/part2/routingtable"
+	"github.com/sagap/Peerster/part2/messaging"
 	"strconv"
 	//"time"
 )
@@ -14,22 +14,22 @@ type Router struct{
 	lastSequencePerOrigin 	map[string]uint32
 }
 
-func NewRouter(rumor <-chan messaging.RumorMessage) (*Router){
+func NewRouter(rumor <-chan messaging.RumorMessage, rtimer int) (*Router){
 	rr :=  &Router{
 		routingtable: 			*routingtable.NewRoutingTable(),
 		lastSequencePerOrigin:  make(map[string]uint32),
 	}
-	go rr.waitForRumorMessage(rumor)
+	go rr.waitForRumorMessage(rumor, rtimer)
 	return rr
 }
 
-func (router *Router) waitForRumorMessage(rumor <-chan messaging.RumorMessage){
+func (router *Router) waitForRumorMessage(rumor <-chan messaging.RumorMessage, rtimer int){
 
 	for data := range rumor{
 		if router.checkSeqNumber(data.Origin, data.ID){
 			router.routingtable.Add(data.Origin, data.LastIP.String()+":"+strconv.Itoa(*data.LastPort))
 		}
-		//ticker := time.NewTicker(time.Second)
+		//ticker := time.NewTicker(time.Duration(rtimer)*time.Second)
 		//<-ticker.C
 	}
 }

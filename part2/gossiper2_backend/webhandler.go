@@ -11,12 +11,12 @@ import (
 	"log"
 	"fmt"
 	"strings"
-	"github.com/sagap/Decentralized-Systems-Project-2/part1/messaging"
+	"github.com/sagap/Peerster/part2/messaging"
+
 )
 
-
 type myHandler struct{
-	node    *Gossiper
+	node    Gossiper
 	//proposeC   <-chan(string)
 }
 
@@ -77,6 +77,7 @@ func (gossiper *Gossiper) messageHandler(w http.ResponseWriter, r *http.Request)
 		// according to specs there's no need to keep PRIVATE messages stored
 		for k, v := range gossiper.privateList{
 			toPrint = append(toPrint,"PRIVATE: "+k.String()+" : from "+v.Origin+" -> "+v.Text)
+			fmt.Println("EDWWWWWWWWWWWW",v.Text)
 			delete(gossiper.privateList, k)
 		}
 		j, _ := json.Marshal(toPrint)

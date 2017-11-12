@@ -2,8 +2,8 @@ package routing
 
 import (
 	"strings"
-	"github.com/sagap/Decentralized-Systems-Project-2/part1/routingtable"
-	"github.com/sagap/Decentralized-Systems-Project-2/part1/messaging"
+	"github.com/sagap/Peerster/part1/routingtable"
+	"github.com/sagap/Peerster/part1/messaging"
 	"strconv"
 	//"time"
 )

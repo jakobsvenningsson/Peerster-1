@@ -1,8 +1,8 @@
 MONGERING with 127.0.0.1:10002
-STATUS2 from 127.0.0.1:10002 origin B nextID 2 origin A nextID 2 origin D nextID 2
+DSDV E: 127.0.0.1:10002
+127.0.0.1:10002
+STATUS from 127.0.0.1:10002 origin E nextID 2 origin B nextID 2 origin A nextID 2
 DSDV A: 127.0.0.1:10002
 DSDV B: 127.0.0.1:10002
 127.0.0.1:10002
-127.0.0.1:10002
-DSDV C: 127.0.0.1:10002
 127.0.0.1:10002

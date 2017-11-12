@@ -11,7 +11,7 @@ import (
 	"log"
 	"fmt"
 	"strings"
-	"github.com/sagap/Decentralized-Systems-Project-2/part1/messaging"
+	"github.com/sagap/Peerster/part1/messaging"
 )
 
 
@@ -30,16 +30,12 @@ func (gossiper *Gossiper) nodeHandler(w http.ResponseWriter, r *http.Request) {
 		var m acceptIP
 		b, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(b, &m)
-		fmt.Println("String",m.IP)
 		gossiper.setpeers = append(gossiper.setpeers, m.IP)
 		w.WriteHeader(http.StatusOK)
 	case "GET":                      // return the list of neighbor nodes(peers)
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		j, _ := json.Marshal(gossiper.setpeers)
-		//j, _ := json.Marshal(gossiper.Routerr.PrintOriginIdentifiers())
-		//data := []string{"a", "b", "c"}
-		//j, _ := json.Marshal(data)
 		w.Write(j)
 	}
 }
@@ -77,6 +73,7 @@ func (gossiper *Gossiper) messageHandler(w http.ResponseWriter, r *http.Request)
 		// according to specs there's no need to keep PRIVATE messages stored
 		for k, v := range gossiper.privateList{
 			toPrint = append(toPrint,"PRIVATE: "+k.String()+" : from "+v.Origin+" -> "+v.Text)
+			fmt.Println("EDWWWWWWWWWWWW",v.Text)
 			delete(gossiper.privateList, k)
 		}
 		j, _ := json.Marshal(toPrint)

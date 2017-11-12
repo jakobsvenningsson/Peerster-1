@@ -6,7 +6,7 @@ import (
 "fmt"
 "strconv"
 "github.com/dedis/protobuf"
-	"github.com/sagap/Decentralized-Systems-Project-2/part1/messaging"
+	"github.com/sagap/Peerster/part1/messaging"
 	"strings"
 )
 const localAddress string = "127.0.0.1"
