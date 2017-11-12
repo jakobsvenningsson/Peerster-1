@@ -1,11 +1,62 @@
-DSDV B: 127.0.0.1:10002
-127.0.0.1:10002
-STATUS from 127.0.0.1:10002 origin B nextID 2
 DSDV C: 127.0.0.1:10004
+DSDV B: 127.0.0.1:10002
+DSDV D: 127.0.0.1:10002
 MONGERING with 127.0.0.1:10002
-STATUS from 127.0.0.1:10002 origin B nextID 2 origin A nextID 2
-127.0.0.1:10002,127.0.0.1:10004
 STATUS from 127.0.0.1:10004 origin C nextID 2
-STATUS from 127.0.0.1:10004 origin B nextID 2 origin C nextID 2
-STATUS from 127.0.0.1:10004 origin C nextID 2 origin B nextID 2 origin A nextID 2
+STATUS from 127.0.0.1:10004 origin C nextID 2 origin A nextID 2
+IN SYNC WITH 127.0.0.1:10004
+127.0.0.1:10004,127.0.0.1:10002
+MONGERING with 127.0.0.1:10004
+FLIPPED COIN sending rumor to 127.0.0.1:10002
+MONGERING with 127.0.0.1:10002
+STATUS from 127.0.0.1:10002 origin D nextID 2 origin E nextID 2 origin B nextID 2
+DSDV E: 127.0.0.1:10002
+127.0.0.1:10004,127.0.0.1:10002
+STATUS from 127.0.0.1:10004 origin C nextID 2 origin A nextID 2 origin B nextID 2
+MONGERING with 127.0.0.1:10004
+STATUS from 127.0.0.1:10004 origin A nextID 2 origin C nextID 2
+STATUS from 127.0.0.1:10002 origin D nextID 2 origin E nextID 2 origin B nextID 2
+STATUS from 127.0.0.1:10002 origin E nextID 2 origin B nextID 2 origin D nextID 2
+STATUS from 127.0.0.1:10004 origin B nextID 2 origin D nextID 2 origin C nextID 2STATUS from 127.0.0.1:10002 origin A nextID 2 origin B nextID 2
+ origin D nextID 2 origin E nextID 2
+IN SYNC WITH 127.0.0.1:10004
+127.0.0.1:10004,127.0.0.1:10002
+MONGERING with 127.0.0.1:10004
+STATUS from 127.0.0.1:10002 origin B nextID 2 origin D nextID 2 origin E nextID 2
+STATUS from 127.0.0.1:10002 origin B nextID 2 origin D nextID 2 origin E nextID 2
+STATUS from 127.0.0.1:10004 origin D nextID 2 origin E nextID 2 origin C nextID 2 origin A nextID 2 origin B nextID 2
+STATUS from 127.0.0.1:10002IN SYNC WITH 127.0.0.1:10004
+ origin E nextID 2 origin B nextID 2 origin D nextID 2127.0.0.1:10004
+,127.0.0.1:10002
+STATUS from 127.0.0.1:10002 origin E nextID 2 origin B nextID 2 origin D nextID 2
+STATUS from 127.0.0.1:10004 origin B nextID 2 origin D nextID 2 origin E nextID 2 origin C nextID 2 origin A nextID 2
+IN SYNC WITH 127.0.0.1:10004
+STATUS from 127.0.0.1:10002 origin B nextID 2 origin D nextID 2 origin E nextID 2 origin C nextID 2
+STATUS from 127.0.0.1:10002 origin D nextID 2 origin E nextID 2 origin B nextID 2
+STATUS from 127.0.0.1:10002 origin C nextID 2 origin D nextID 2 origin B nextID 2 origin E nextID 2
+STATUS from 127.0.0.1:10002 origin D nextID 2 origin E nextID 2 origin C nextID 2 origin A nextID 2 origin B nextID 2
+IN SYNC WITH 127.0.0.1:10002
+STATUS from 127.0.0.1:10004 origin D nextID 2 origin E nextID 2 origin C nextID 2 origin A nextID 2 origin B nextID 2
+IN SYNC WITH 127.0.0.1:10004
+STATUS from 127.0.0.1:10004 origin E nextID 2 origin C nextID 2 origin A nextID 2 origin B nextID 2 origin D nextID 2
+IN SYNC WITH 127.0.0.1:10004
+STATUS from 127.0.0.1:10004 origin C nextID 2 origin A nextID 2 origin B nextID 2 origin D nextID 2 origin E nextID 2
+IN SYNC WITH 127.0.0.1:10004
+STATUS from 127.0.0.1:10002 origin A nextID 2 origin B nextID 2 origin D nextID 2 origin E nextID 2 origin C nextID 2
+IN SYNC WITH 127.0.0.1:10002
+STATUS from 127.0.0.1:10004 origin A nextID 2 origin B nextID 2 origin D nextID 2 origin E nextID 2 origin C nextID 2
+IN SYNC WITH 127.0.0.1:10004
+STATUS from 127.0.0.1:10002 origin B nextID 2 origin D nextID 2 origin E nextID 2 origin C nextID 2 origin A nextID 2
+IN SYNC WITH 127.0.0.1:10002
+STATUS from 127.0.0.1:10004 origin C nextID 2 origin A nextID 2 origin B nextID 2 origin D nextID 2 origin E nextID 2
+IN SYNC WITH 127.0.0.1:10004
+STATUS from 127.0.0.1:10002 origin E nextID 2 origin C nextID 2 origin A nextID 2 origin B nextID 2 origin D nextID 2
+IN SYNC WITH 127.0.0.1:10002
+STATUS from 127.0.0.1:10004 origin E nextID 2 origin C nextID 2 origin A nextID 2 origin B nextID 2 origin D nextID 2
+IN SYNC WITH 127.0.0.1:10004
+STATUS from 127.0.0.1:10002 origin A nextID 2 origin B nextID 2 origin D nextID 2 origin E nextID 2 origin C nextID 2
+IN SYNC WITH 127.0.0.1:10002
+STATUS from 127.0.0.1:10004 origin E nextID 2 origin C nextID 2 origin A nextID 2 origin B nextID 2 origin D nextID 2
+IN SYNC WITH 127.0.0.1:10004
+STATUS from 127.0.0.1:10004 origin E nextID 2 origin C nextID 2 origin A nextID 2 origin B nextID 2 origin D nextID 2
 IN SYNC WITH 127.0.0.1:10004

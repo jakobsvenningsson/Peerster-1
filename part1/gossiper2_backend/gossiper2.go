@@ -247,9 +247,9 @@ func (gossiper *Gossiper)waitForPeersToSendStatus(){                        // i
 	go func() {
 		for msg := range gossiper.msgChn3{
 			gossiper.mu2.RLock()
-			_, found := gossiper.waitForACK[msg.UpdAddr]
+			resp, _ := gossiper.waitForACK[msg.UpdAddr]
 			gossiper.mu2.RUnlock()
-			if found{
+			if resp{
 				gossiper.msgChnACK <- msg
 				continue
 			}
