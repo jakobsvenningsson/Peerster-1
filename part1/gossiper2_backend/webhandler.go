@@ -2,11 +2,9 @@ package gossiper2_backend
 
 import (
 	"net/http"
-//	"log"
 	"github.com/gorilla/mux"
 	"encoding/json"
 	"io/ioutil"
-	//"strconv"
 	"strconv"
 	"log"
 	"fmt"
@@ -62,14 +60,17 @@ func (gossiper *Gossiper) messageHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		toPrint := []string{}
-		gossiper.mu.RLock()
+		//gossiper.mu.RLock()
 		// Vector Clocks are used well, but I did not put any logic on the way messages should be printed
-		for k, v := range gossiper.vectorClock{
+		/*for k, v := range gossiper.vectorClock{
 			if strings.Compare(v,"") != 0{
 				toPrint = append(toPrint, gossiper.timeofMessage[k].String()+" : "+strings.Split(k,",")[0]+" -> "+v)
 			}
+		}*/
+		for _, val := range gossiper.MessagesText(){
+			toPrint = append(toPrint, val)
 		}
-		gossiper.mu.RUnlock()
+		//gossiper.mu.RUnlock()
 		// according to specs there's no need to keep PRIVATE messages stored
 		for k, v := range gossiper.privateList{
 			toPrint = append(toPrint,"PRIVATE: "+k.String()+" : from "+v.Origin+" -> "+v.Text)

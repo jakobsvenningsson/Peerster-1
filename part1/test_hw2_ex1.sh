@@ -48,7 +48,7 @@ sleep 1
 ./client/client -UIPort=10007 -msg=$message2
 # Give message to A
 ./client/client -UIPort=10001 -msg=$message2
-sleep 2
+sleep 3
 pkill -f gossiper
 
 #testing

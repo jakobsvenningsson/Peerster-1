@@ -38,7 +38,7 @@ startGossip B 10002 10000
 startGossip C 10004 10000
 startGossip D 10006 10002
 startGossip E 10008 10002
-sleep 8
+sleep 4
 
 pkill -f gossiper
 #testing
