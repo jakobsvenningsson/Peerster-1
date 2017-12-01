@@ -16,18 +16,18 @@ func main(){
 	dest := flag.String("Dest", "", "Destination")
 	msg := flag.String("msg", "Hello", "Message to be sent")
 	file := flag.String("file", "", "Share this file")
+	request := flag.String ("request", "", "Hash Value of Metafile")
 	flag.Parse()
 	var message messaging.GossipPacket
-	if strings.Compare(*dest,"") != 0{
+	if strings.Compare(*file,"")!=0{
+		datareq := &messaging.DataRequest{"",*dest,0,*file,[]byte(*request)}
+		message = messaging.GossipPacket{nil,nil,nil,datareq,nil}
+	}else if strings.Compare(*dest,"") != 0{
 		privateMessage := &messaging.PrivateMessage{"",0,*msg,*dest,10}
 		message = messaging.GossipPacket{nil,nil,privateMessage,nil,nil}
-	}else if strings.Compare(*file,"")!=0{
-		datareq := &messaging.DataRequest{"","",0,*file,[]byte{}}
-		message = messaging.GossipPacket{nil,nil,nil,datareq,nil}
 	}else{
 		rumorMessage := &messaging.RumorMessage{"", 0,*msg, &net.IP{}, uiPort}
 		message = messaging.GossipPacket{rumorMessage,nil,nil, nil,nil}
-
 	}
 	toSend := localAddress+":"+strconv.Itoa(*uiPort)
 	updAddr, err1 :=net.ResolveUDPAddr("udp",toSend)
@@ -41,6 +41,6 @@ func main(){
 	defer conn.Close()
 	packetBytes, err := protobuf.Encode(&message)
 
-	fmt.Println("Send: ", packetBytes,message)
+	//fmt.Println("Send: ", packetBytes,message.Private)
 	conn.Write(packetBytes)
 }

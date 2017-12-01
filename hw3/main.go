@@ -12,8 +12,9 @@ func main(){
 	peers := flag.String("peers","","underscore separated peers")
 	rtimer := flag.Int("rtimer",60,"rtimer flag")
 	guiPort := flag.Int("GUIPort",0,"Gui Port")
+	noForward := flag.Bool("noforward",false,"Not forward messages, except route rumors")
 	flag.Parse()
-	gossiper := gossiper2_backend.NewGossiper(*gossipPort, *nodeName, *peers, *rtimer, *guiPort)
+	gossiper := gossiper2_backend.NewGossiper(*gossipPort, *nodeName, *peers, *rtimer, *guiPort, *noForward)
 	gossiper.ServeClients(*uiPort)
 
 

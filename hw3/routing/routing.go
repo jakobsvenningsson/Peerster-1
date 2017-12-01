@@ -12,9 +12,15 @@ import (
 type Router struct{
 	routingtable 			routingtable.RoutingTable		// routing table
 	lastSequencePerOrigin 	map[string]uint32               // maintains last sequence number of each nodeID
+	direct		map[string]bool
 }
 
-func NewRouter(rumor <-chan messaging.RumorMessage, wait int) (*Router){
+type PrioritySequence struct {
+	Message messaging.RumorMessage
+	Direct  bool                        // if it is a direct route
+}
+
+func NewRouter(rumor <-chan PrioritySequence, wait int) (*Router){
 	rr :=  &Router{
 		routingtable: 			*routingtable.NewRoutingTable(),
 		lastSequencePerOrigin:  make(map[string]uint32),
@@ -23,13 +29,17 @@ func NewRouter(rumor <-chan messaging.RumorMessage, wait int) (*Router){
 	return rr
 }
 
-func (router *Router) waitForRumorMessage(rumor <-chan messaging.RumorMessage, waitingTime int){
-
+func (router *Router) waitForRumorMessage(rumor <-chan PrioritySequence, rtimer int){
 	for data := range rumor{
-		if router.checkSeqNumber(data.Origin, data.ID){
-			router.routingtable.Add(data.Origin, data.LastIP.String()+":"+strconv.Itoa(*data.LastPort))
+		if router.checkSeqNumber(data.Message.Origin, data.Message.ID){
+			if *data.Message.LastPort !=0{
+				router.routingtable.Add(data.Message.Origin, data.Message.LastIP.String()+":"+strconv.Itoa(*data.Message.LastPort))
+			}
+		}else if data.Direct && data.Message.ID == router.lastSequencePerOrigin[data.Message.Origin]{
+			router.routingtable.Add(data.Message.Origin, data.Message.LastIP.String()+":"+strconv.Itoa(*data.Message.LastPort))
 		}
-		//ticker := time.NewTicker(time.Duration(waitingTime)*time.Second)
+
+		//ticker := time.NewTicker(time.Duration(rtimer)*time.Second)
 		//<-ticker.C
 	}
 }
