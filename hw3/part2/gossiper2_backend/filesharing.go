@@ -32,13 +32,17 @@ type FileSharing struct{
 	handleDuplicates    map[string]time.Time
 	storeReplies	    map[string]FileInfo				//	 filename -> FileInfo
 	budgetNow			uint64
-	mu1					sync.RWMutex
+	mu1					sync.RWMutex 						// locking for map of channels channelsToReceive
+	mu2 				sync.RWMutex						// locking of storeReplies, which contain the metaFiles and the chunks from each node
 }
 
+// with the struct FileInfo I keep track of the nodes that share a file, with the corresponding chunks of each node
 type FileInfo struct{
 	nodeChunks map[string][]uint64						//   origin -> chunkMap
 	metafile   []byte
+	flag	   bool
 }
+
 
 func (gossiper *Gossiper)NewFileSharing(chanDataReq<- chan *messaging.DataRequest, chanDataReq2<- chan *messaging.DataRequest, chanSearchReq<- chan *messaging.SearchRequest, chanSearchReply<- chan *messaging.SearchReply) *FileSharing{
 	fS := &FileSharing{
@@ -97,14 +101,17 @@ func (gossiper *Gossiper) WaitingForSearchReplies() {
 			for _,v := range reply.Results{
 				fi[reply.Origin] = v.ChunkMap
 				tempFI.nodeChunks = fi
+				gossiper.FS.mu2.Lock()
 				val, ok := gossiper.FS.storeReplies[v.FileName]
 				if !ok{
 					//tempStore := make(map[string]FileInfo)
 					//tempStore[v.FileName] = *tempFI
 					gossiper.FS.storeReplies[v.FileName] = *tempFI
 				}else{
+					fmt.Println("EDWWWWWWWWWWWWWWWWWWWWWWWWW")
 					val.nodeChunks[reply.Origin] = tempFI.nodeChunks[reply.Origin]
 				}
+				gossiper.FS.mu2.Unlock()
 				fmt.Println("FOUND match",v.FileName,"at node",reply.Origin,"budget=",gossiper.FS.budgetNow,"metafile=",string(v.MetafileHash),"chunks=",v.ChunkMap)
 				go gossiper.AskForMetafile(v.FileName, reply.Origin, v.MetafileHash)
 			}
@@ -120,26 +127,37 @@ func (gossiper *Gossiper) AskForMetafile(filename, dest string, hash []byte) {
 	gossiper.FS.channelsToReceive[request.Destination+","+request.FileName]= make(chan *messaging.DataReply)
 	gossiper.FS.mu1.Unlock()
 	Reply := <-gossiper.FS.channelsToReceive[request.Destination+","+request.FileName]
-	fmt.Println("DOWNLOADING metafile of",request.FileName,"from node",request.Origin)
+	fmt.Println("DOWNLOADING metafile of",request.FileName,"from node",request.Destination)
+	gossiper.FS.mu2.RLock()
 	vc := gossiper.FS.storeReplies[request.FileName]
+	gossiper.FS.mu2.RUnlock()
 	vc.metafile = Reply.Data
+	gossiper.FS.mu2.Lock()
 	gossiper.FS.storeReplies[request.FileName] = vc
-	gossiper.FS.checkIfThreshold()
+	gossiper.FS.mu2.Unlock()
+	gossiper.checkIfThreshold()
+	fmt.Println("WWW",gossiper.FS.storeReplies)
 }
 
-func (fs* FileSharing) checkIfThreshold(){
+func (gossiper* Gossiper) checkIfThreshold(){
 	counter := 0
-	for _, v := range fs.storeReplies{
+	gossiper.FS.mu2.RLock()
+	for k, v := range gossiper.FS.storeReplies{
 		chunks := len(v.metafile) / 32
 		for _, chun := range v.nodeChunks{
-			if len(chun) == chunks{
-				counter +=1
+			if len(chun) == chunks {
+				counter += 1
+				temp :=  gossiper.FS.storeReplies[k]
+				temp.flag = true
+				gossiper.FS.storeReplies[k] = temp
 			}
 		}
+
 	}
+	gossiper.FS.mu2.RUnlock()
 	if counter == Threshold{
 		flag := true
-		fs.channelThresReached <- &flag
+		gossiper.FS.channelThresReached <- &flag
 	}
 }
 
@@ -154,12 +172,14 @@ func (gossiper *Gossiper) acceptSearchReq(){
 		}
 	}()
 }
+
 func (gossiper *Gossiper) performSearch(req messaging.SearchRequest){
 	if req.Budget == 0{
 		budget := uint64(2)
 		flag := true
 		gossiper.FS.budgetNow = budget
 		for budget <= 32  && flag{
+			fmt.Println("Search with budget:",gossiper.FS.budgetNow)
 			select {
 				case <- time.After(1*time.Second):
 					req.Budget = budget
@@ -174,9 +194,11 @@ func (gossiper *Gossiper) performSearch(req messaging.SearchRequest){
 			}
 		}
 	}else{
+		fmt.Println("Sends to", req)
 		gossiper.redistributeRequest(req)
 	}
 }
+
 func (gossiper *Gossiper) redistributeRequest(req messaging.SearchRequest){
 	if int(req.Budget) >= len(gossiper.setpeers){
 		diff := int(req.Budget) - len(gossiper.setpeers)
@@ -264,7 +286,6 @@ func (fs *FileSharing) shareFile(request messaging.DataRequest){
 
 func (gossiper *Gossiper)searchForKeyWords(request messaging.SearchRequest){
 	var res []*messaging.SearchResult
-	fmt.Println("SEarches for keywords",request.Origin)
 	for _, keyWord := range request.Keywords{
 		for k, v := range  gossiper.FS.metadata{
 			if strings.Contains(k, keyWord){       // match
@@ -274,7 +295,7 @@ func (gossiper *Gossiper)searchForKeyWords(request messaging.SearchRequest){
 		}
 	}
 	// send SearchReply
-	fmt.Println("STELNEI........")
+	fmt.Println("Sends Search reply...",res)
 	searchReply := messaging.SearchReply{gossiper.origin,request.Origin,10,res}
 	message := &messaging.GossipPacket{nil,nil,nil,nil,nil,nil,&searchReply,nil}
 	go gossiper.sendPrivateMessages(*message, request.Origin)
@@ -361,6 +382,15 @@ func (gossiper *Gossiper) startReceiving(request messaging.DataRequest) {       
 	go gossiper.sendReceiveChunks(request)
 }
 
+func (gossiper *Gossiper) receiveChunksFromDifferentNodes(){
+
+
+
+
+
+}
+
+
 // this is the function that is used to receive all the chunks
 func (gossiper *Gossiper) sendReceiveChunks(request messaging.DataRequest) {
 	tempChunks := 1
@@ -388,7 +418,8 @@ func (gossiper *Gossiper) sendReceiveChunks(request messaging.DataRequest) {
 		gossiper.FS.checkDataHash(Reply, false, gossiper.FS.metadata[request.FileName].MetaFile[32*(tempChunks-1):32*(tempChunks)])
 		tempChunks = tempChunks + 1
 	}
-	f, err := os.Create("./_Downloads/"+request.FileName)
+	filepath := "./_Downloads/_Downloads_"+gossiper.origin+"/"
+	f, err := os.Create(filepath+request.FileName)
 	if err == nil{
 		f.Write(gossiper.FS.metadata[request.FileName].FileData)
 	}else {

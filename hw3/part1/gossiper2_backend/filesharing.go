@@ -49,6 +49,7 @@ func (gossiper *Gossiper) createDataRequest(){
 			if len(request.HashValue) == 0{
 				gossiper.FS.shareFile(*request)
 			}else{
+				fmt.Println("EDWWWWWWWWWWWW")
 				go gossiper.startReceiving(*request)
 			}
 		}

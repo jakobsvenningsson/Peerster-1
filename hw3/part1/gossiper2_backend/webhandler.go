@@ -94,12 +94,34 @@ func (gossiper *Gossiper) changeIDHandler(w http.ResponseWriter, r *http.Request
 	w.Write(j)
 }
 
+func (gossiper *Gossiper) fileHandler(w http.ResponseWriter, r *http.Request){
+	switch r.Method {
+	case "POST":                                 // share File
+		var m string
+		b, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(b, &m)
+		datareq := &messaging.DataRequest{"","",0,m,[]byte{}}
+		gossiper.msgChnFS <- datareq
+		w.WriteHeader(http.StatusOK)
+	case "PUT":
+		var m string
+		b, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(b, &m)
+		arr := strings.Split(m,",")
+		datareq := &messaging.DataRequest{"",arr[0],10,arr[2],[]byte(arr[1])}
+		gossiper.msgChnFS <- datareq
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+	}
+}
+
 func (gossiper *Gossiper)ServeHttpKVAPI() {
 	r := mux.NewRouter()
 	r.HandleFunc("/message", gossiper.messageHandler).Methods("GET", "POST")
 	r.HandleFunc("/node", gossiper.nodeHandler).Methods("GET", "POST")
 	r.HandleFunc("/nodeId", gossiper.nodeIDHandler).Methods("GET")
 	r.HandleFunc("/id", gossiper.changeIDHandler).Methods("POST")
+	r.HandleFunc("/file", gossiper.fileHandler).Methods("PUT", "POST")
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./static"))))
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(gossiper.GuiPort),r))//gossiper.GuiPort), r))
 }

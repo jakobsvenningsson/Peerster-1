@@ -214,7 +214,7 @@ func (gossiper *Gossiper) handleRequests(recv []byte, n int, udpAddr string, fla
 				}
 			}
 		}else if t2.SearchRep != nil{
-			fmt.Println("ERXETAI REPLY:", t2.SearchRep)
+			fmt.Println("REPLY:")
 			if strings.Compare(t2.SearchRep.Destination, gossiper.origin) == 0{
 				gossiper.msgChnFS4 <- t2.SearchRep
 			}else{

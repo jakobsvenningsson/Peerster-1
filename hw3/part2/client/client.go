@@ -18,7 +18,7 @@ func main(){
 	file := flag.String("file", "", "Share this file")
 	request := flag.String ("request", "", "Hash Value of Metafile")
 	keywords := flag.String ("keywords", "", "Keywords to search")
-	budget := flag.Int("budget",2,"Budget")
+	budget := flag.Int("budget",0,"Budget")
 	flag.Parse()
 	var message messaging.GossipPacket
 	if strings.Compare(*file,"")!=0{

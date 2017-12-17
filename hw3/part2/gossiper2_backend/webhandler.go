@@ -94,12 +94,67 @@ func (gossiper *Gossiper) changeIDHandler(w http.ResponseWriter, r *http.Request
 	w.Write(j)
 }
 
+func (gossiper *Gossiper) fileHandler(w http.ResponseWriter, r *http.Request){
+	switch r.Method {
+	case "POST":                                 // share File
+		var m string
+		b, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(b, &m)
+		datareq := &messaging.DataRequest{"","",0,m,[]byte{}}
+		gossiper.msgChnFS <- datareq
+		w.WriteHeader(http.StatusOK)
+	case "PUT":
+		var m string
+		b, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(b, &m)
+		arr := strings.Split(m,",")
+		datareq := &messaging.DataRequest{"",arr[0],10,arr[2],[]byte(arr[1])}
+		gossiper.msgChnFS <- datareq
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+	}
+}
+
+func (gossiper *Gossiper) searchHandler(w http.ResponseWriter, r *http.Request){
+	switch r.Method {
+	case "POST":                                 // share File
+		var m string
+		b, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(b, &m)
+		searchreq := &messaging.SearchRequest{gossiper.origin,0,strings.Split(m,",")}
+		fmt.Println("Search Request for words: ",m)
+		gossiper.performSearch(*searchreq)
+		w.WriteHeader(http.StatusOK)
+	case "PUT":
+		var m string
+		b, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(b, &m)
+		arr := strings.Split(m,",")
+		datareq := &messaging.DataRequest{"",arr[0],10,arr[2],[]byte(arr[1])}
+		gossiper.msgChnFS <- datareq
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+	case "GET":
+		toPrint := []string{}
+		for key, val := range gossiper.FS.storeReplies{
+			if val.flag{
+				toPrint = append(toPrint, key)
+				fmt.Println("EDWWWWWWWWWWW",key)
+			}
+		}
+		j, _ := json.Marshal(toPrint)
+		w.Write(j)
+	}
+}
+
 func (gossiper *Gossiper)ServeHttpKVAPI() {
 	r := mux.NewRouter()
 	r.HandleFunc("/message", gossiper.messageHandler).Methods("GET", "POST")
 	r.HandleFunc("/node", gossiper.nodeHandler).Methods("GET", "POST")
 	r.HandleFunc("/nodeId", gossiper.nodeIDHandler).Methods("GET")
 	r.HandleFunc("/id", gossiper.changeIDHandler).Methods("POST")
+	r.HandleFunc("/file", gossiper.fileHandler).Methods("POST","PUT")
+	r.HandleFunc("/search", gossiper.searchHandler).Methods("POST","PUT","GET")
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./static"))))
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(gossiper.GuiPort),r))//gossiper.GuiPort), r))
 }

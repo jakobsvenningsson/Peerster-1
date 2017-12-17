@@ -146,7 +146,9 @@ func (gossiper *Gossiper) handleRequests(recv []byte, n int, udpAddr string, fla
 			gossiper.msgChn1 <- t2 // channel for clients
 		}
 	} else {
-		gossiper.appendPeersList(udpAddr)
+		if flag{
+			gossiper.appendPeersList(udpAddr)
+		}
 		msgRecv := messaging.MsgReceiver{t2, udpAddr} // keep the address of the relay peer into MsgReceiver channel
 		if t2.Status != nil {
 			gossiper.msgChn3 <- msgRecv
