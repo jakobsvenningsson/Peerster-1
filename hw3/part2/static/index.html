@@ -112,7 +112,7 @@
 			  <button id="sendMessage_Node" type="button" class="btn btn-default">Send Message</button>
   			  <h2>Files</h2>	
 			  <ul id="get_files_list">	
-
+ 					<a><li class="files_to_send" id="222" >yolleeieeeeAAAAAAAAeeeeeeeeeeeeeeeeeeee</li></a>
 		       </ul>
 		</div>
 		
@@ -373,7 +373,7 @@
 	               var i = 0 ;
 	               $.each(myObj, function(i, item){
 	               			if(!ListOfPeers.includes(item)){
-
+								//<!--a><li class="files_to_send" id="222" >yolleeieeeeAAAAAAAAeeeeeeeeeeeeeeeeeeee</li></a-->
 	               				//<a id="smart_reply"  onclick="smart_reply(this.id)"> Yolo</a>
 	               				//'<div id=\"test' +i+'\"></div>'
 	                        	$listpeers.append('<li id=\"peer' +peers_counter+'\"><a >'+ item+' </a></li>');
@@ -404,7 +404,7 @@
 
 	               				//<a id="smart_reply"  onclick="smart_reply(this.id)"> Yolo</a>
 	               				//'<div id=\"test' +i+'\"></div>'
-	                        	$listpeers.append('<a><li id=\"file' +number_of_files+'\">'+ item+'</li></a>');
+	                        	$listpeers.append('<li class="files_to_send" id=\"file' +number_of_files+'\"><a>'+ item+'</a></li>');
 	                        	number_of_files++;
 	                        	ListOfFiles.push(item);
 	                    	}
@@ -412,9 +412,8 @@
 	           }
         })
     }
-   	$('.files_to_send').click(function(){
+    $(document).on('click', '.files_to_send', function(){
 		var message = this.textContent;
-
    		console.log("files_to_send with id : " + (this.id) + "  value == "+ message);
         var packet = JSON.stringify(message); 
         $.ajax({
@@ -422,7 +421,7 @@
             url: '/search',
         	data: packet,
     	});
-   	})
+   	});
 
 		$('#post3').click(get_peers());
     

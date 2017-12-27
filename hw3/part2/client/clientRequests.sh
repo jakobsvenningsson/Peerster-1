@@ -1,0 +1,9 @@
+./client -UIPort=12345 -file=f.txt
+./client -UIPort=12347 -file=f11.pdf
+./client -UIPort=12348 -file=f22.pdf
+./client -UIPort=12346 -file=f66.pdf
+./client -UIPort=12347 -file=crossfit1.pdf
+./client -UIPort=12348 -file=crossfit2.pdf
+./client -UIPort=12349 -file=crossfit3.pdf
+./client -UIPort=12349 -file=file.txt
+./client -UIPort=12349 -file=file2.txt

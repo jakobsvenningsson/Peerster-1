@@ -34,6 +34,7 @@ type FileSharing struct{
 	budgetNow			uint64
 	mu1					sync.RWMutex 						// locking for map of channels channelsToReceive
 	mu2 				sync.RWMutex						// locking of storeReplies, which contain the metaFiles and the chunks from each node
+	mu3					sync.RWMutex						// handle Duplicates
 }
 
 // with the struct FileInfo I keep track of the nodes that share a file, with the corresponding chunks of each node
@@ -96,9 +97,9 @@ func (gossiper *Gossiper) WaitingDataRequest(){
 func (gossiper *Gossiper) WaitingForSearchReplies() {
 	go func() {
 		for reply := range gossiper.FS.channelSearchRep {
-			fi := make(map[string][]uint64)
-			tempFI := new(FileInfo)
 			for _,v := range reply.Results{
+				fi := make(map[string][]uint64)
+				tempFI := new(FileInfo)
 				fi[reply.Origin] = v.ChunkMap
 				tempFI.nodeChunks = fi
 				gossiper.FS.mu2.Lock()
@@ -136,7 +137,6 @@ func (gossiper *Gossiper) AskForMetafile(filename, dest string, hash []byte) {
 	gossiper.FS.storeReplies[request.FileName] = vc
 	gossiper.FS.mu2.Unlock()
 	gossiper.checkIfThreshold()
-	fmt.Println("WWW",gossiper.FS.storeReplies)
 }
 
 func (gossiper* Gossiper) checkIfThreshold(){
@@ -144,7 +144,7 @@ func (gossiper* Gossiper) checkIfThreshold(){
 	gossiper.FS.mu2.RLock()
 	for k, v := range gossiper.FS.storeReplies{
 		chunks := len(v.metafile) / 32
-		for _, chun := range v.nodeChunks{
+		for _, chun := range gossiper.FS.storeReplies[k].nodeChunks{
 			if len(chun) == chunks {
 				counter += 1
 				temp :=  gossiper.FS.storeReplies[k]
@@ -152,10 +152,9 @@ func (gossiper* Gossiper) checkIfThreshold(){
 				gossiper.FS.storeReplies[k] = temp
 			}
 		}
-
 	}
 	gossiper.FS.mu2.RUnlock()
-	if counter == Threshold{
+	if counter >= Threshold{
 		flag := true
 		gossiper.FS.channelThresReached <- &flag
 	}
@@ -245,18 +244,25 @@ func (gossiper *Gossiper) redistributeRequest(req messaging.SearchRequest){
 
 func (gossiper *Gossiper) checkDuplicates(req messaging.SearchRequest) bool{
 	arr := strings.Join(req.Keywords, ",")
+	gossiper.FS.mu3.RLock()
 	tim, ok := gossiper.FS.handleDuplicates[req.Origin+arr]
+	gossiper.FS.mu3.RUnlock()
 	if ! ok{
+		gossiper.FS.mu3.Lock()
 		gossiper.FS.handleDuplicates[req.Origin+arr] = time.Now()
+		gossiper.FS.mu3.Unlock()
 		return true
 	}else{
 		if time.Duration(tim.Second() -time.Now().Second()) > time.Duration(500*time.Millisecond){
+			gossiper.FS.mu3.Lock()
 			gossiper.FS.handleDuplicates[req.Origin+arr] = time.Now()
+			gossiper.FS.mu3.Unlock()
 			return true
 		}else{    // else Duplicates
 			return false
 		}
 	}
+
 }
 
 func (fs *FileSharing) shareFile(request messaging.DataRequest){
@@ -264,11 +270,12 @@ func (fs *FileSharing) shareFile(request messaging.DataRequest){
 		file, err := os.Open(request.FileName) // For read access.
 		if err != nil {
 		log.Println(err)
+		return
 		}
 		data := make([]byte, 3000000)
 		count, err := file.Read(data)
 		if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		}
 		//fmt.Printf("read %d bytes: %q\n", count, data[:count])
 		metaFile, numOfChunks, hMap, chunkList := fs.buildMetafile(data[:count])
@@ -279,7 +286,6 @@ func (fs *FileSharing) shareFile(request messaging.DataRequest){
 		tempMeta.FileData = data[:count]
 		tempMeta.HashChunk = hMap
 		tempMeta.Indexes = chunkList
-		//fmt.Println("FILE:",tempMeta.FileData)
 		tempMeta.NumOfChunks = numOfChunks
 		fs.metadata[request.FileName] = tempMeta
 }
@@ -382,12 +388,57 @@ func (gossiper *Gossiper) startReceiving(request messaging.DataRequest) {       
 	go gossiper.sendReceiveChunks(request)
 }
 
-func (gossiper *Gossiper) receiveChunksFromDifferentNodes(){
-
-
-
-
-
+func (gossiper *Gossiper) receiveChunksFromDifferentNodes(fileName string){
+	counter := 1
+	gossiper.FS.mu2.RLock()
+	val, _ := gossiper.FS.storeReplies[fileName]
+	gossiper.FS.mu2.RUnlock()
+	countUntil := len(val.metafile) / 32
+	for counter <= countUntil{
+		for key, chunk := range val.nodeChunks{
+			for _, v := range chunk{
+				if uint64(counter) == v{
+					request := messaging.DataRequest{gossiper.origin, key,10,fileName,val.metafile[32*(counter-1):32*(counter)]}
+					msg := &messaging.GossipPacket{nil, nil, nil, &request, nil,nil,nil,nil}
+					gossiper.sendPrivateMessages(*msg, key)
+					gossiper.FS.mu1.Lock()
+					_, ok := gossiper.FS.channelsToReceive[key+","+request.FileName]
+					if !ok {
+						gossiper.FS.channelsToReceive[key+","+request.FileName]= make(chan *messaging.DataReply)
+					}
+					//fmt.Println("EEEEEEEEEEEEEEEEEEEEEEEEEEEEE",counter,"---",key+","+request.FileName)
+					Reply := <-gossiper.FS.channelsToReceive[request.Destination+","+request.FileName]       //TODO crash change sender
+					fmt.Println("DOWNLOADING",Reply.FileName,"chunk",counter,"from",Reply.Origin)
+					gossiper.FS.mu1.Unlock()
+					counter = counter + 1
+					tempMeta := gossiper.FS.metadata[request.FileName]
+					metaCounter := len(tempMeta.FileData)
+					if metaCounter == 0{
+						tempMeta.FileData = make([]byte,len(Reply.Data))
+						for _, v := range Reply.Data{
+							tempMeta.FileData[metaCounter] = v
+							metaCounter++
+						}
+					}else{
+						for _, v := range Reply.Data{
+							tempMeta.FileData = append(tempMeta.FileData, v)
+						}
+					}
+					gossiper.FS.metadata[request.FileName] = tempMeta
+				}
+			}
+		}
+		gossiper.FS.buildMetafile(gossiper.FS.metadata[fileName].FileData)
+	}
+	filepath := "./_Downloads/_Downloads_"+gossiper.origin+"/"
+	f, err := os.Create(filepath+fileName)
+	if err == nil{
+		f.Write(gossiper.FS.metadata[fileName].FileData)
+	}else {
+		log.Fatal(err)
+	}
+	f.Close()
+	fmt.Println("RECONSTRUCTED file",fileName)
 }
 
 

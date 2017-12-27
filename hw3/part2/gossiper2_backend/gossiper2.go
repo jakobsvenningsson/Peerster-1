@@ -187,7 +187,9 @@ func (gossiper *Gossiper) handleRequests(recv []byte, n int, udpAddr string, fla
 			}
 		} else if t2.Request != nil {
 			empty := strings.Compare(t2.Request.Origin, "")
-			if t2.Request.Destination == gossiper.origin || empty == 0 {
+			if strings.Compare(t2.Request.Destination,"") == 0 && strings.Compare(string(t2.Request.HashValue),"") != 0{
+				gossiper.receiveChunksFromDifferentNodes(t2.Request.FileName)
+			}else if t2.Request.Destination == gossiper.origin || empty == 0 {
 				if empty == 0 {
 					gossiper.msgChnFS <- t2.Request                   // request from cli, create DataRequest
 				} else {

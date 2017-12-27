@@ -129,9 +129,7 @@ func (gossiper *Gossiper) searchHandler(w http.ResponseWriter, r *http.Request){
 		var m string
 		b, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(b, &m)
-		arr := strings.Split(m,",")
-		datareq := &messaging.DataRequest{"",arr[0],10,arr[2],[]byte(arr[1])}
-		gossiper.msgChnFS <- datareq
+		gossiper.receiveChunksFromDifferentNodes(m)
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 	case "GET":
@@ -139,7 +137,6 @@ func (gossiper *Gossiper) searchHandler(w http.ResponseWriter, r *http.Request){
 		for key, val := range gossiper.FS.storeReplies{
 			if val.flag{
 				toPrint = append(toPrint, key)
-				fmt.Println("EDWWWWWWWWWWW",key)
 			}
 		}
 		j, _ := json.Marshal(toPrint)
